@@ -1,0 +1,12 @@
+[package]
+name = "asn-lab/tukir-iot-final"
+version = "1.0.0"
+
+[app]
+name = "tukir-backend-final"
+# Pastikan Laravel serve dari folder public
+command = "php -S 0.0.0.0:8080 -t public"
+
+[[app.routes]]
+path = "/"
+backend = "http://127.0.0.1:8080"
