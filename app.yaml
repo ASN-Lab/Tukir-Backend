@@ -2,14 +2,4 @@ kind: wasmer.io/App.v0
 name: Tukir-Backend
 owner: asn-lab
 package: .
-annotations:
-  anybuild.run/config:
-    composer_enable: true
-    name: out
-    php_framework: laravel
-    php_public_dir: public
-    phpix: true
-  anybuild.run/provider: laravel
-  anybuild.run/version: 0.33.2
-  wasmer.io/version: 7.5.0
 enable_email: true
