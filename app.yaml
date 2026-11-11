@@ -5,14 +5,8 @@ package: .
 app_id: da_RMMIrt4U1jyZ
 annotations:
   anybuild.run/config:
-    composer_build_script: post-update-cmd
     composer_enable: true
     name: out
-    node_build_command: npm run build
-    node_install_inputs:
-    - package.json
-    node_package_manager: npm
-    npm_version: '11'
     php_framework: laravel
     php_public_dir: public
     phpix: true
