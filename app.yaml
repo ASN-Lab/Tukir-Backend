@@ -2,7 +2,6 @@ kind: wasmer.io/App.v0
 name: Tukir-Backend
 owner: asn-lab
 package: .
-app_id: da_RMMIrt4U1jyZ
 annotations:
   anybuild.run/config:
     composer_enable: true
