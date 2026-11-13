@@ -2,7 +2,7 @@ $logPath = "$env:TEMP\cf_tunnel.log"
 if (Test-Path $logPath) { Remove-Item $logPath }
 
 Write-Host "Starting Cloudflare Tunnel..." -ForegroundColor Cyan
-$proc = Start-Process -FilePath "$env:USERPROFILE\cloudflared.exe" -ArgumentList "tunnel --url http://localhost:9001" -RedirectStandardOutput $logPath -PassThru -WindowStyle Hidden
+$proc = Start-Process -FilePath "$env:USERPROFILE\cloudflared.exe" -ArgumentList "tunnel --url tcp://localhost:1883" -RedirectStandardOutput $logPath -PassThru -WindowStyle Hidden
 
 Write-Host "Waiting for tunnel URL..." -ForegroundColor Yellow
 $url = $null
