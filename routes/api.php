@@ -20,3 +20,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/activity-logs', [ActivityLogController::class, 'index']);
     });
 });
+Route::post('/internal/tunnel-update', function (Illuminate\Http\Request $request) {
+    if ($request->secret !== 'tukir-secret-update-99') return response()->json(['error' => 'Unauthorized'], 401);
+    
+    $host = $request->host;
+    // Update .env file (ini mungkin tidak permanen di Wasmer, tapi kita coba panggil config)
+    // Cara terbaik di Wasmer adalah simpan di DB atau Cache
+    Cache::put('mqtt_tunnel_host', $host);
+    return response()->json(['success' => true, 'new_host' => $host]);
+});

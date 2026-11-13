@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Device;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use PhpMqtt\Client\MqttClient;
 use PhpMqtt\Client\ConnectionSettings;
 
@@ -80,22 +81,25 @@ class DeviceController extends Controller
     private function publishMqtt(string $deviceCode, string $command): bool
     {
         try {
-            $server = env('MQTT_HOST', '127.0.0.1');
-            $port = (int) env('MQTT_PORT', 1883);
+            // Host tunnel di-update otomatis oleh laptop via /api/internal/tunnel-update
+            $server = Cache::get('mqtt_tunnel_host') ?? env('MQTT_HOST', '127.0.0.1');
+            $port = (int) env('MQTT_PORT', 443);
             $clientId = 'tukir-laravel-api-' . uniqid();
 
             $settings = (new ConnectionSettings)
                 ->setKeepAliveInterval(30)
-                ->setConnectTimeout(5);
+                ->setConnectTimeout(5)
+                ->setUseTls(true);
 
-            if ($username = env('MQTT_USERNAME')) {
+            if ($username = env('MQTT_USERNAME', 'tukir_user')) {
                 $settings->setUsername($username);
             }
-            if ($password = env('MQTT_PASSWORD')) {
+            if ($password = env('MQTT_PASSWORD', 'tukir_pass')) {
                 $settings->setPassword($password);
             }
 
-            $mqtt = new MqttClient($server, $port, $clientId);
+            // Tunnel Cloudflare hanya menerima WebSocket di port 443
+            $mqtt = new MqttClient($server, $port, $clientId, MqttClient::TRANSPORT_WEBSOCKETS);
             $mqtt->connect($settings, true);
 
             $payload = json_encode([
@@ -103,7 +107,7 @@ class DeviceController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ]);
 
-            $topic = "tukir/$deviceCode/control";
+            $topic = "tukir/device/$deviceCode/command";
             $mqtt->publish($topic, $payload, 1);
             $mqtt->disconnect();
 
