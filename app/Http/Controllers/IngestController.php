@@ -12,21 +12,23 @@ class IngestController extends Controller
 {
     public function __invoke(Request $request, TelemetryIngestor $ingestor)
     {
-        $request->validate([
-            'topic' => 'required|string',
-            'payload' => 'required|string',
-        ]);
-
         if ($request->header('X-Ingest-Secret') !== config('mqtt.webhook_secret')) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
+
+        $request->validate([
+            'topic' => 'required|string',
+        ]);
 
         // Format topik: tukir/{device_code}/{telemetry|status}
         $parts = explode('/', $request->topic);
         $deviceCode = $parts[1] ?? null;
         $kind = $parts[2] ?? null;
 
-        $data = json_decode($request->payload, true);
+        $data = $request->input('payload');
+        if (is_string($data)) {
+            $data = json_decode($data, true);
+        }
         if (! $deviceCode || ! is_array($data)) {
             return response()->json(['status' => 'ignored']);
         }
