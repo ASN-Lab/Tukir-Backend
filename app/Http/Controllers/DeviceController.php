@@ -86,16 +86,15 @@ class DeviceController extends Controller
             $port = (int) env('MQTT_PORT', 443);
             $clientId = 'tukir-laravel-api-' . uniqid();
 
-            $config = (new ClientConfig())
-                ->setClientId($clientId)
-                ->setUserName(env('MQTT_USERNAME', 'tukir_user'))
-                ->setPassword(env('MQTT_PASSWORD', 'tukir_pass'))
-                ->setKeepAlive(30);
+            $config = new \Simps\MQTT\Config\ClientConfig();
+            $config->setClientId($clientId);
+            $config->setUserName(env('MQTT_USERNAME', 'tukir_user'));
+            $config->setPassword(env('MQTT_PASSWORD', 'tukir_pass'));
 
-            // Gunakan WebSocketClient untuk port 443/9001 (WSS aktif jika port 443)
+            // Gunakan WebSocketClient untuk port 443/9001
             $ssl = $port === 443;
             $mqtt = new \Simps\MQTT\WebSocketClient($server, $port, $config, '/mqtt', $ssl);
-            $mqtt->connect(true);
+            $mqtt->connect();
 
             $payload = json_encode([
                 'command' => $command,
