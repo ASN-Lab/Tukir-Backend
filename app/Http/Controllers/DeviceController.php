@@ -81,8 +81,8 @@ class DeviceController extends Controller
     {
         try {
             // EMQX Cloud Serverless: MQTT over TLS (port 8883)
-            $server = env('MQTT_HOST', '127.0.0.1');
-            $port = (int) env('MQTT_PORT', 8883);
+            $server = config('mqtt.host');
+            $port = (int) config('mqtt.port');
             $clientId = 'tukir-laravel-api-'.uniqid();
 
             $settings = (new ConnectionSettings)
@@ -90,10 +90,10 @@ class DeviceController extends Controller
                 ->setConnectTimeout(5)
                 ->setUseTls(true);
 
-            if ($username = env('MQTT_USERNAME')) {
+            if ($username = config('mqtt.username')) {
                 $settings->setUsername($username);
             }
-            if ($password = env('MQTT_PASSWORD')) {
+            if ($password = config('mqtt.password')) {
                 $settings->setPassword($password);
             }
 
