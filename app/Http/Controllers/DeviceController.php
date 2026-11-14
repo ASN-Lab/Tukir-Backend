@@ -6,8 +6,8 @@ use App\Models\ActivityLog;
 use App\Models\Device;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use PhpMqtt\Client\MqttClient;
-use PhpMqtt\Client\ConnectionSettings;
+use Simps\Mqtt\Client;
+use Simps\Mqtt\Config\ClientConfig;
 
 class DeviceController extends Controller
 {
@@ -81,25 +81,19 @@ class DeviceController extends Controller
     private function publishMqtt(string $deviceCode, string $command): bool
     {
         try {
-            // Menggunakan TCP (port 1883) karena library php-mqtt/client ini versi standar (bukan WebSockets)
+            // Menggunakan Simps\MQTT\Client dengan WebSocket
             $server = Cache::get('mqtt_tunnel_host') ?? env('MQTT_HOST', '127.0.0.1');
-            $port = (int) env('MQTT_PORT', 1883);
+            $port = (int) env('MQTT_PORT', 443);
             $clientId = 'tukir-laravel-api-' . uniqid();
 
-            $settings = (new ConnectionSettings)
-                ->setKeepAliveInterval(30)
-                ->setConnectTimeout(5);
+            $config = (new ClientConfig())
+                ->setClientId($clientId)
+                ->setUserName(env('MQTT_USERNAME', 'tukir_user'))
+                ->setPassword(env('MQTT_PASSWORD', 'tukir_pass'))
+                ->setKeepAlive(30);
 
-            if ($username = env('MQTT_USERNAME', 'tukir_user')) {
-                $settings->setUsername($username);
-            }
-            if ($password = env('MQTT_PASSWORD', 'tukir_pass')) {
-                $settings->setPassword($password);
-            }
-
-            // Inisialisasi MqttClient standar (TCP)
-            $mqtt = new MqttClient($server, $port, $clientId);
-            $mqtt->connect($settings, true);
+            // Gunakan WebSocketClient untuk port 443/9001
+            $mqtt = new \Simps\MQTT\WebSocketClient($server, $port, $config, '/mqtt', false);
 
             $payload = json_encode([
                 'command' => $command,
@@ -108,7 +102,7 @@ class DeviceController extends Controller
 
             $topic = "tukir/device/$deviceCode/command";
             $mqtt->publish($topic, $payload, 1);
-            $mqtt->disconnect();
+            $mqtt->close();
 
             return true;
         } catch (\Throwable $e) {
