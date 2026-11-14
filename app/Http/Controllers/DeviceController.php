@@ -6,8 +6,8 @@ use App\Models\ActivityLog;
 use App\Models\Device;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Simps\Mqtt\Client;
-use Simps\Mqtt\Config\ClientConfig;
+use Simps\MQTT\Config\ClientConfig;
+use Simps\MQTT\WebSocketClient;
 
 class DeviceController extends Controller
 {
@@ -95,6 +95,7 @@ class DeviceController extends Controller
             // Gunakan WebSocketClient untuk port 443/9001 (WSS aktif jika port 443)
             $ssl = $port === 443;
             $mqtt = new \Simps\MQTT\WebSocketClient($server, $port, $config, '/mqtt', $ssl);
+            $mqtt->connect(true);
 
             $payload = json_encode([
                 'command' => $command,
