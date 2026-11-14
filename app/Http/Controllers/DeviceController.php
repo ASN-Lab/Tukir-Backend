@@ -92,8 +92,9 @@ class DeviceController extends Controller
                 ->setPassword(env('MQTT_PASSWORD', 'tukir_pass'))
                 ->setKeepAlive(30);
 
-            // Gunakan WebSocketClient untuk port 443/9001
-            $mqtt = new \Simps\MQTT\WebSocketClient($server, $port, $config, '/mqtt', false);
+            // Gunakan WebSocketClient untuk port 443/9001 (WSS aktif jika port 443)
+            $ssl = $port === 443;
+            $mqtt = new \Simps\MQTT\WebSocketClient($server, $port, $config, '/mqtt', $ssl);
 
             $payload = json_encode([
                 'command' => $command,
