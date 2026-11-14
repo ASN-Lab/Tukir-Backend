@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Device;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Simps\MQTT\Config\ClientConfig;
-use Simps\MQTT\WebSocketClient;
+use PhpMqtt\Client\ConnectionSettings;
+use PhpMqtt\Client\MqttClient;
 
 class DeviceController extends Controller
 {
@@ -81,20 +80,25 @@ class DeviceController extends Controller
     private function publishMqtt(string $deviceCode, string $command): bool
     {
         try {
-            // Menggunakan Simps\MQTT\Client dengan WebSocket
-            $server = Cache::get('mqtt_tunnel_host') ?? env('MQTT_HOST', '127.0.0.1');
-            $port = (int) env('MQTT_PORT', 443);
-            $clientId = 'tukir-laravel-api-' . uniqid();
+            // EMQX Cloud Serverless: MQTT over TLS (port 8883)
+            $server = env('MQTT_HOST', '127.0.0.1');
+            $port = (int) env('MQTT_PORT', 8883);
+            $clientId = 'tukir-laravel-api-'.uniqid();
 
-            $config = new \Simps\MQTT\Config\ClientConfig();
-            $config->setClientId($clientId);
-            $config->setUserName(env('MQTT_USERNAME', 'tukir_user'));
-            $config->setPassword(env('MQTT_PASSWORD', 'tukir_pass'));
+            $settings = (new ConnectionSettings)
+                ->setKeepAliveInterval(30)
+                ->setConnectTimeout(5)
+                ->setUseTls(true);
 
-            // Gunakan WebSocketClient untuk port 443/9001
-            $ssl = $port === 443;
-            $mqtt = new \Simps\MQTT\WebSocketClient($server, $port, $config, '/mqtt', $ssl);
-            $mqtt->connect();
+            if ($username = env('MQTT_USERNAME')) {
+                $settings->setUsername($username);
+            }
+            if ($password = env('MQTT_PASSWORD')) {
+                $settings->setPassword($password);
+            }
+
+            $mqtt = new MqttClient($server, $port, $clientId);
+            $mqtt->connect($settings, true);
 
             $payload = json_encode([
                 'command' => $command,
@@ -103,11 +107,12 @@ class DeviceController extends Controller
 
             $topic = "tukir/device/$deviceCode/command";
             $mqtt->publish($topic, $payload, 1);
-            $mqtt->close();
+            $mqtt->disconnect();
 
             return true;
         } catch (\Throwable $e) {
             report($e);
+
             return false;
         }
     }
