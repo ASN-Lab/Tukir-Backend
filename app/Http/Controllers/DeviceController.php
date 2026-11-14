@@ -105,7 +105,7 @@ class DeviceController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ]);
 
-            $topic = "tukir/device/$deviceCode/command";
+            $topic = "tukir/$deviceCode/command";
             $mqtt->publish($topic, $payload, 1);
             $mqtt->disconnect();
 
