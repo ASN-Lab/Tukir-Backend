@@ -88,7 +88,7 @@ class DeviceController extends Controller
             $settings = (new ConnectionSettings)
                 ->setKeepAliveInterval(30)
                 ->setConnectTimeout(5)
-                ->setUseTls(true);
+                ->setUseTls(config('mqtt.port') == 8883);
 
             if ($username = config('mqtt.username')) {
                 $settings->setUsername($username);
