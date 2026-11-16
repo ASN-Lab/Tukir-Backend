@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Device;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use PhpMqtt\Client\ConnectionSettings;
 use PhpMqtt\Client\MqttClient;
 
@@ -87,39 +88,31 @@ class DeviceController extends Controller
 
     private function publishMqtt(string $deviceCode, string $command): bool
     {
-        // EMQX Cloud Serverless: MQTT over TLS (port 8883)
-        $server = config('mqtt.host');
-        $port = (int) config('mqtt.port');
-        $clientId = 'tukir-laravel-api-'.uniqid();
+        $host = config('mqtt.host');
+        $apiKey = env('EMQX_API_KEY');
+        $apiSecret = env('EMQX_API_SECRET');
 
-        $settings = (new ConnectionSettings)
-            ->setKeepAliveInterval(30)
-            ->setConnectTimeout(5)
-            ->setUseTls(config('mqtt.port') == 8883)
-            ->setTlsVerifyPeer(false); // <--- Add this!
-
-        if ($username = config('mqtt.username')) {
-            $settings->setUsername($username);
-        }
-        if ($password = config('mqtt.password')) {
-            $settings->setPassword($password);
+        if (!$apiKey || !$apiSecret) {
+            throw new \Exception('EMQX API Credentials (API_KEY/SECRET) are not configured in Wasmer Secrets.');
         }
 
-        $mqtt = new MqttClient($server, $port, $clientId);
-        $mqtt->connect($settings, true);
+        // Endpoint EMQX Cloud REST API (Standard port 18083 for HTTP API)
+        $url = "https://$host:18083/api/v5/publish";
 
-        $payload = json_encode([
-            'command' => $command,
-            'timestamp' => now()->toIso8601String(),
-        ]);
+        $response = Http::withBasicAuth($apiKey, $apiSecret)
+            ->post($url, [
+                'topic' => "tukir/$deviceCode/command",
+                'payload' => json_encode([
+                    'command' => $command,
+                    'timestamp' => now()->toIso8601String(),
+                ]),
+                'qos' => 1,
+                'retain' => false,
+            ]);
 
-        $topic = "tukir/$deviceCode/command";
-        $mqtt->publish($topic, $payload, 1);
-        
-        // Beri waktu sejenak agar paket benar-to-send (terutama di Wasmer Edge)
-        usleep(500000); // 0.5 detik
-        
-        $mqtt->disconnect();
+        if ($response->failed()) {
+            throw new \Exception('EMQX API Failure: ' . $response->body());
+        }
 
         return true;
     }
