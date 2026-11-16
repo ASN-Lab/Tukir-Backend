@@ -118,4 +118,5 @@ class DeviceController extends Controller
         $mqtt->disconnect();
 
         return true;
+    }
 }
