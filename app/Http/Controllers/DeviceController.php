@@ -115,6 +115,10 @@ class DeviceController extends Controller
 
         $topic = "tukir/$deviceCode/command";
         $mqtt->publish($topic, $payload, 1);
+        
+        // Beri waktu sejenak agar paket benar-to-send (terutama di Wasmer Edge)
+        usleep(500000); // 0.5 detik
+        
         $mqtt->disconnect();
 
         return true;
