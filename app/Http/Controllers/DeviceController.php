@@ -6,8 +6,6 @@ use App\Models\ActivityLog;
 use App\Models\Device;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use PhpMqtt\Client\ConnectionSettings;
-use PhpMqtt\Client\MqttClient;
 
 class DeviceController extends Controller
 {
@@ -92,12 +90,12 @@ class DeviceController extends Controller
         $apiKey = env('EMQX_API_KEY');
         $apiSecret = env('EMQX_API_SECRET');
 
-        if (!$apiKey || !$apiSecret) {
+        if (! $apiKey || ! $apiSecret) {
             throw new \Exception('EMQX API Credentials (API_KEY/SECRET) are not configured in Wasmer Secrets.');
         }
 
-        // Endpoint EMQX Cloud REST API (Standard port 18083 for HTTP API)
-        $url = "https://$host:18083/api/v5/publish";
+        // Endpoint EMQX Cloud REST API menggunakan port HTTPS standar (443)
+        $url = "https://$host:443/api/v5/publish";
 
         $response = Http::withBasicAuth($apiKey, $apiSecret)
             ->post($url, [
@@ -111,7 +109,7 @@ class DeviceController extends Controller
             ]);
 
         if ($response->failed()) {
-            throw new \Exception('EMQX API Failure: ' . $response->body());
+            throw new \Exception('EMQX API Failure: '.$response->body());
         }
 
         return true;
