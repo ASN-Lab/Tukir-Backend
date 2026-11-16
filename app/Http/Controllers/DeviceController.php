@@ -94,8 +94,8 @@ class DeviceController extends Controller
             throw new \Exception('EMQX API Credentials (API_KEY/SECRET) are not configured in Wasmer Secrets.');
         }
 
-        // Endpoint EMQX Cloud REST API menggunakan port HTTPS standar (443)
-        $url = "https://$host:443/api/v5/publish";
+        // Endpoint EMQX Cloud Serverless REST API (port 8443)
+        $url = "https://$host:8443/api/v5/publish";
 
         $response = Http::withBasicAuth($apiKey, $apiSecret)
             ->post($url, [
