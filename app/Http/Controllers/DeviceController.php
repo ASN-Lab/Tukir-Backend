@@ -39,7 +39,13 @@ class DeviceController extends Controller
         }
 
         // Publish command via MQTT ke topic control device
-        $published = $this->publishMqtt($device->device_code, $data['command']);
+        $mqttError = null;
+        try {
+            $published = $this->publishMqtt($device->device_code, $data['command']);
+        } catch (\Throwable $e) {
+            $published = false;
+            $mqttError = $e->getMessage();
+        }
 
         // Optimistic update state (firmware akan konfirmasi via telemetry saat terpasang)
         if ($data['command'] === 'OPEN') {
@@ -67,53 +73,49 @@ class DeviceController extends Controller
                 'command' => $data['command'],
                 'triggered_by' => $user->email,
                 'mqtt_published' => $published,
+                'mqtt_error' => $mqttError,
             ],
         ]);
 
         return response()->json([
-            'status' => $published ? 'command_sent' : 'command_queued',
+            'status' => $published ? 'command_sent' : 'command_failed',
             'command' => $data['command'],
             'mqtt_published' => $published,
+            'mqtt_error' => $mqttError,
         ]);
     }
 
     private function publishMqtt(string $deviceCode, string $command): bool
     {
-        try {
-            // EMQX Cloud Serverless: MQTT over TLS (port 8883)
-            $server = config('mqtt.host');
-            $port = (int) config('mqtt.port');
-            $clientId = 'tukir-laravel-api-'.uniqid();
+        // EMQX Cloud Serverless: MQTT over TLS (port 8883)
+        $server = config('mqtt.host');
+        $port = (int) config('mqtt.port');
+        $clientId = 'tukir-laravel-api-'.uniqid();
 
-            $settings = (new ConnectionSettings)
-                ->setKeepAliveInterval(30)
-                ->setConnectTimeout(5)
-                ->setUseTls(config('mqtt.port') == 8883);
+        $settings = (new ConnectionSettings)
+            ->setKeepAliveInterval(30)
+            ->setConnectTimeout(5)
+            ->setUseTls(config('mqtt.port') == 8883)
+            ->setTlsVerifyPeer(false); // <--- Add this!
 
-            if ($username = config('mqtt.username')) {
-                $settings->setUsername($username);
-            }
-            if ($password = config('mqtt.password')) {
-                $settings->setPassword($password);
-            }
-
-            $mqtt = new MqttClient($server, $port, $clientId);
-            $mqtt->connect($settings, true);
-
-            $payload = json_encode([
-                'command' => $command,
-                'timestamp' => now()->toIso8601String(),
-            ]);
-
-            $topic = "tukir/$deviceCode/command";
-            $mqtt->publish($topic, $payload, 1);
-            $mqtt->disconnect();
-
-            return true;
-        } catch (\Throwable $e) {
-            report($e);
-
-            return false;
+        if ($username = config('mqtt.username')) {
+            $settings->setUsername($username);
         }
-    }
+        if ($password = config('mqtt.password')) {
+            $settings->setPassword($password);
+        }
+
+        $mqtt = new MqttClient($server, $port, $clientId);
+        $mqtt->connect($settings, true);
+
+        $payload = json_encode([
+            'command' => $command,
+            'timestamp' => now()->toIso8601String(),
+        ]);
+
+        $topic = "tukir/$deviceCode/command";
+        $mqtt->publish($topic, $payload, 1);
+        $mqtt->disconnect();
+
+        return true;
 }
